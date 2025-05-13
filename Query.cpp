@@ -66,306 +66,211 @@ struct Pr
 // INCEPUT cod de trimis pe platforma
 void f(const vector<Pr>& prs, const string& q)
 {
-    char type = q[0]; // n p c s b r d
-    char mode = q[1]; // = @ > ... not discovered yet
-
-    string val = q.substr(2);
-    for (char& ch : val) ch = tolower(ch);
-
-    switch (type)
+    vector<pair<char, pair<char, string>>> queries;
+    stringstream ss(q);
+    string query;
+    while (getline(ss, query, ';'))
     {
-    case 'n':
+        char type = query[0];
+        char mode = query[1];
+        string val = query.substr(2);
+        for (char& ch : val) ch = tolower(ch);
+        queries.push_back({type, {mode, val}});
+    }
+
+    // have to use both a vector and a set because c++ is too primitive
+    vector<string> orderedUniques;
+    unordered_set<string> seen;
+
+    for (const auto& pr : prs)
+    {
+        for (const auto& qquery : queries)
         {
-            switch (mode)
+            char type = qquery.first;
+            char mode = qquery.second.first;
+            string val = qquery.second.second;
+
+            string prn = pr.n;
+
+            bool matches = false;
+
+            switch (type)
             {
-            case '=':
+            case 'n':
                 {
-                    for (const auto& pr : prs)
-                    {
-                        string prn = pr.n;
-                        for (char& ch : prn) ch = tolower(ch);
+                    string prnCopy = pr.n;
+                    for (char& ch : prnCopy) ch = tolower(ch);
 
-                        if (prn == val)
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
-                    break;
-                }
-            case '@':
-                {
-                    for (const auto& pr : prs)
-                    {
-                        string prn = pr.n;
-                        for (char& ch : prn) ch = tolower(ch);
+                    if (mode == '=' && prnCopy == val) matches = true;
+                    else if (mode == '@' && prnCopy.find(val) != string::npos) matches = true;
 
-                        if (prn.find(val) != string::npos)
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
                     break;
                 }
-            case '>':
-                {
-                    break;
-                }
-            default:
-                break;
-            }
-            break;
-        }
-    case 'p':
-        {
-            switch (mode)
-            {
-            case '=':
-                {
-                    for (const auto& pr : prs)
-                    {
-                        unsigned int prp = pr.p;
 
-                        if (prp == stoi(val))
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
-                    break;
-                }
-            case '@':
+
+            case 'p':
                 {
-                    break;
-                }
-            case '>':
-                {
-                    auto it = val.find('<'); // check if it's an interval
-                    if (it != string::npos)
+                    unsigned int prp = pr.p;
+
+                    if (mode == '=' && prp == stoi(val)) matches = true;
+                    else if (mode == '>')
                     {
-                        unsigned int lower = stoi(val.substr(0, it));
-                        unsigned int upper = stoi(val.substr(it + 1));
-                        for (const auto& pr : prs)
+                        auto it = val.find('<'); // check if it's an interval
+                        if (it != string::npos)
                         {
+                            unsigned int lower = stoi(val.substr(0, it));
+                            unsigned int upper = stoi(val.substr(it + 1));
                             if (pr.p > lower && pr.p < upper)
                             {
-                                cout << pr.n << ";";
+                                matches = true;
                             }
                         }
-                    }
-                    else // just p > something
-                    {
-                        unsigned int threshold = stoi(val);
-                        for (const auto& pr : prs)
+                        else // just p > something
                         {
+                            unsigned int threshold = stoi(val);
                             if (pr.p > threshold)
                             {
-                                cout << pr.n << ";";
+                                matches = true;
                             }
                         }
+                        break;
                     }
-                    break;
-                }
-
-            default:
-                break;
-            }
-            break;
-        }
-    case 'c':
-        {
-            switch (mode)
-            {
-            case '=':
-                {
-                    for (const auto& pr : prs)
+                    else if (mode == '<')
                     {
-                        string prc = pr.c;
-                        for (char& ch : prc) ch = tolower(ch);
-
-                        if (prc == val)
+                        auto it = val.find('>'); // check if it's an interval
+                        if (it != string::npos)
                         {
-                            cout << pr.n << ";";
+                            unsigned int upper = stoi(val.substr(0, it));
+                            unsigned int lower = stoi(val.substr(it + 1));
+                            if (pr.p > lower && pr.p < upper)
+                            {
+                                matches = true;
+                            }
                         }
-                    }
-                    break;
-                }
-            case '@':
-                {
-                    for (const auto& pr : prs)
-                    {
-                        string prc = pr.c;
-                        for (char& ch : prc) ch = tolower(ch);
-
-                        if (prc.find(val) != string::npos)
+                        else // just p > something
                         {
-                            cout << pr.n << ";";
+                            unsigned int threshold = stoi(val);
+                            if (pr.p < threshold)
+                            {
+                                matches = true;
+                            }
                         }
+                        break;
                     }
-                    break;
                 }
-            case '>':
-                {
-                    break;
-                }
-            default:
-                break;
-            }
-            break;
-        }
-    case 's':
-        {
-            switch (mode)
-            {
-            case '!':
-                {
-                    for (const auto& pr : prs)
-                    {
-                        unsigned int prss = pr.s;
 
-                        if (prss != 0)
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
-                    break;
-                }
-            default:
-                break;
-            }
-        }
-    case 'b':
-        {
-            switch (mode)
-            {
-            case '=':
-                {
-                    for (const auto& pr : prs)
-                    {
-                        string prb = pr.b;
-                        for (char& ch : prb) ch = tolower(ch);
 
-                        if (prb == val)
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
-                    break;
-                }
-            case '@':
+            case 'c':
                 {
-                    for (const auto& pr : prs)
-                    {
-                        string prb = pr.b;
-                        for (char& ch : prb) ch = tolower(ch);
+                    string prc = pr.c;
+                    for (char& ch : prc) ch = tolower(ch);
 
-                        if (prb.find(val) != string::npos)
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
+                    if (mode == '=' && prc == val) matches = true;
+                    else if (mode == '@' && prc.find(val) != string::npos) matches = true;
+
                     break;
                 }
-            case '>':
+
+
+            case 's':
                 {
+                    unsigned int prss = pr.s;
+
+                    if (mode == '!' && prss != 0) matches = true;
+
                     break;
                 }
-            default:
-                break;
-            }
-            break;
-        }
-    case 'r':
-        {
-            switch (mode)
-            {
-            case '>':
+
+
+            case 'b':
                 {
-                    auto it = val.find('<'); // check if it's an interval
-                    if (it != string::npos)
+                    string prb = pr.b;
+                    for (char& ch : prb) ch = tolower(ch);
+
+                    if (mode == '=' && prb == val) matches = true;
+                    else if (mode == '@' && prb.find(val) != string::npos) matches = true;
+
+                    break;
+                }
+
+
+            case 'r':
+                {
+                    float prr = pr.r;
+
+                    if (mode == '=' && prr == stof(val)) matches = true;
+                    else if (mode == '>')
                     {
-                        float lower = stof(val.substr(0, it));
-                        float upper = stof(val.substr(it + 1));
-                        for (const auto& pr : prs)
+                        auto it = val.find('<'); // check if it's an interval
+                        if (it != string::npos)
                         {
+                            float lower = stof(val.substr(0, it));
+                            float upper = stof(val.substr(it + 1));
                             if (pr.r > lower && pr.r < upper)
                             {
-                                cout << pr.n << ";";
+                                matches = true;
                             }
                         }
-                    }
-                    else // just p > something
-                    {
-                        float threshold = stof(val);
-                        for (const auto& pr : prs)
+                        else // just p > something
                         {
+                            float threshold = stof(val);
                             if (pr.r > threshold)
                             {
-                                cout << pr.n << ";";
+                                matches = true;
                             }
                         }
+                        break;
                     }
-                    break;
-                }
-            case '<':
-                {
-                    auto it = val.find('>'); // check if it's an interval
-                    if (it != string::npos)
+                    else if (mode == '<')
                     {
-                        float upper = stof(val.substr(0, it));
-                        float lower = stof(val.substr(it + 1));
-                        for (const auto& pr : prs)
+                        auto it = val.find('>'); // check if it's an interval
+                        if (it != string::npos)
                         {
+                            float upper = stof(val.substr(0, it));
+                            float lower = stof(val.substr(it + 1));
                             if (pr.r > lower && pr.r < upper)
                             {
-                                cout << pr.n << ";";
+                                matches = true;
                             }
                         }
-                    }
-                    else // just p > something
-                    {
-                        float threshold = stof(val);
-                        for (const auto& pr : prs)
+                        else // just p > something
                         {
+                            float threshold = stof(val);
                             if (pr.r < threshold)
                             {
-                                cout << pr.n << ";";
+                                matches = true;
                             }
                         }
+                        break;
                     }
-                    break;
                 }
-            default:
-                break;
-            }
-            break;
-        }
-    case 'd':
-        {
-            switch (mode)
-            {
-            case '!':
-                {
-                    for (const auto& pr : prs)
-                    {
-                        unsigned int prd = pr.d;
 
-                        if (prd != 0)
-                        {
-                            cout << pr.n << ";";
-                        }
-                    }
+
+            case 'd':
+                {
+                    unsigned int prd = pr.d;
+
+                    if (mode == '!' && prd != 0) matches = true;
+
                     break;
                 }
-            default:
-                break;
+
+            default: break;
             }
-            break;
+
+            if (matches && !seen.count(prn))
+            {
+                seen.insert(prn);
+                orderedUniques.push_back(prn);
+            }
         }
-    default:
-        break;
     }
+
+
+    for (const auto& name : orderedUniques)
+        cout << name << ";";
     cout << endl;
 }
-
 
 // FINAL cod de trimis pe platforma
 
