@@ -66,7 +66,7 @@ struct Pr
 // INCEPUT cod de trimis pe platforma
 void f(const vector<Pr>& prs, const string& q)
 {
-    // Parse queries by type
+    // parse queries by type
     unordered_map<char, vector<pair<char, string>>> typeToFilters;
     stringstream ss(q);
     string query;
@@ -157,8 +157,8 @@ void f(const vector<Pr>& prs, const string& q)
 
                 case 's':
                     {
-                        if (mode == '!' && pr.s != 0)
-                            anyMatchThisType = true;
+                        if (mode == '!' && pr.s != 0) anyMatchThisType = true;
+                        else if (mode == '?' && pr.s == 0) anyMatchThisType = true;
                         break;
                     }
 
@@ -208,8 +208,8 @@ void f(const vector<Pr>& prs, const string& q)
 
                 case 'd':
                     {
-                        if (mode == '!' && pr.d != 0)
-                            anyMatchThisType = true;
+                        if (mode == '!' && pr.d != 0) anyMatchThisType = true;
+                        else if (mode == '?' && pr.d == 0) anyMatchThisType = true;
                         break;
                     }
 
