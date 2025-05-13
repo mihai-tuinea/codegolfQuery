@@ -66,211 +66,181 @@ struct Pr
 // INCEPUT cod de trimis pe platforma
 void f(const vector<Pr>& prs, const string& q)
 {
-    vector<pair<char, pair<char, string>>> queries;
+    // Parse queries by type
+    unordered_map<char, vector<pair<char, string>>> typeToFilters;
     stringstream ss(q);
     string query;
     while (getline(ss, query, ';'))
     {
+        if (query.size() < 2) continue;
+
         char type = query[0];
         char mode = query[1];
-        string val = query.substr(2);
+        string val = (query.size() > 2) ? query.substr(2) : "";
+
         for (char& ch : val) ch = tolower(ch);
-        queries.push_back({type, {mode, val}});
+        typeToFilters[type].emplace_back(mode, val);
     }
 
-    // have to use both a vector and a set because c++ is too primitive
     vector<string> orderedUniques;
     unordered_set<string> seen;
 
     for (const auto& pr : prs)
     {
-        for (const auto& qquery : queries)
+        bool allTypesMatch = true;
+
+        for (const auto& [type, filters] : typeToFilters)
         {
-            char type = qquery.first;
-            char mode = qquery.second.first;
-            string val = qquery.second.second;
+            bool anyMatchThisType = false;
 
-            string prn = pr.n;
-
-            bool matches = false;
-
-            switch (type)
+            for (const auto& [mode, val] : filters)
             {
-            case 'n':
+                string prn = pr.n;
+                switch (type)
                 {
-                    string prnCopy = pr.n;
-                    for (char& ch : prnCopy) ch = tolower(ch);
-
-                    if (mode == '=' && prnCopy == val) matches = true;
-                    else if (mode == '@' && prnCopy.find(val) != string::npos) matches = true;
-
-                    break;
-                }
-
-
-            case 'p':
-                {
-                    unsigned int prp = pr.p;
-
-                    if (mode == '=' && prp == stoi(val)) matches = true;
-                    else if (mode == '>')
+                case 'n':
                     {
-                        auto it = val.find('<'); // check if it's an interval
-                        if (it != string::npos)
+                        string prnLower = pr.n;
+                        for (char& ch : prnLower) ch = tolower(ch);
+
+                        if (mode == '=' && prnLower == val) anyMatchThisType = true;
+                        else if (mode == '@' && prnLower.find(val) != string::npos) anyMatchThisType = true;
+                        else if (mode == '!' && prnLower.find(val) == string::npos) anyMatchThisType = true;
+
+                        break;
+                    }
+
+
+                case 'p':
+                    {
+                        unsigned int prp = pr.p;
+
+                        if (mode == '=' && prp == stoi(val)) anyMatchThisType = true;
+                        else if (mode == '>')
                         {
-                            unsigned int lower = stoi(val.substr(0, it));
-                            unsigned int upper = stoi(val.substr(it + 1));
-                            if (pr.p > lower && pr.p < upper)
+                            auto it = val.find('<');
+                            if (it != string::npos)
                             {
-                                matches = true;
+                                unsigned int low = stoi(val.substr(0, it));
+                                unsigned int up = stoi(val.substr(it + 1));
+                                if (prp > low && prp < up) anyMatchThisType = true;
                             }
+                            else if (prp > stoi(val)) anyMatchThisType = true;
                         }
-                        else // just p > something
+                        else if (mode == '<')
                         {
-                            unsigned int threshold = stoi(val);
-                            if (pr.p > threshold)
+                            auto it = val.find('>');
+                            if (it != string::npos)
                             {
-                                matches = true;
+                                unsigned int up = stoi(val.substr(0, it));
+                                unsigned int low = stoi(val.substr(it + 1));
+                                if (prp > low && prp < up) anyMatchThisType = true;
                             }
+                            else if (prp < stoi(val)) anyMatchThisType = true;
                         }
                         break;
                     }
-                    else if (mode == '<')
+
+
+                case 'c':
                     {
-                        auto it = val.find('>'); // check if it's an interval
-                        if (it != string::npos)
+                        string prc = pr.c;
+                        for (char& ch : prc) ch = tolower(ch);
+
+                        if (mode == '=' && prc == val) anyMatchThisType = true;
+                        else if (mode == '@' && prc.find(val) != string::npos) anyMatchThisType = true;
+                        else if (mode == '!' && prc.find(val) == string::npos) anyMatchThisType = true;
+
+                        break;
+                    }
+
+
+                case 's':
+                    {
+                        if (mode == '!' && pr.s != 0)
+                            anyMatchThisType = true;
+                        break;
+                    }
+
+
+                case 'b':
+                    {
+                        string prb = pr.b;
+                        for (char& ch : prb) ch = tolower(ch);
+
+                        if (mode == '=' && prb == val) anyMatchThisType = true;
+                        else if (mode == '@' && prb.find(val) != string::npos) anyMatchThisType = true;
+                        else if (mode == '!' && prb.find(val) == string::npos) anyMatchThisType = true;
+
+                        break;
+                    }
+
+
+                case 'r':
+                    {
+                        float prr = pr.r;
+                        if (mode == '=' && prr == stof(val)) anyMatchThisType = true;
+                        else if (mode == '>')
                         {
-                            unsigned int upper = stoi(val.substr(0, it));
-                            unsigned int lower = stoi(val.substr(it + 1));
-                            if (pr.p > lower && pr.p < upper)
+                            auto it = val.find('<');
+                            if (it != string::npos)
                             {
-                                matches = true;
+                                float low = stof(val.substr(0, it));
+                                float up = stof(val.substr(it + 1));
+                                if (prr > low && prr < up) anyMatchThisType = true;
                             }
+                            else if (prr > stof(val)) anyMatchThisType = true;
                         }
-                        else // just p > something
+                        else if (mode == '<')
                         {
-                            unsigned int threshold = stoi(val);
-                            if (pr.p < threshold)
+                            auto it = val.find('>');
+                            if (it != string::npos)
                             {
-                                matches = true;
+                                float up = stof(val.substr(0, it));
+                                float low = stof(val.substr(it + 1));
+                                if (prr > low && prr < up) anyMatchThisType = true;
                             }
+                            else if (prr < stof(val)) anyMatchThisType = true;
                         }
                         break;
                     }
-                }
 
 
-            case 'c':
-                {
-                    string prc = pr.c;
-                    for (char& ch : prc) ch = tolower(ch);
-
-                    if (mode == '=' && prc == val) matches = true;
-                    else if (mode == '@' && prc.find(val) != string::npos) matches = true;
-
-                    break;
-                }
-
-
-            case 's':
-                {
-                    unsigned int prss = pr.s;
-
-                    if (mode == '!' && prss != 0) matches = true;
-
-                    break;
-                }
-
-
-            case 'b':
-                {
-                    string prb = pr.b;
-                    for (char& ch : prb) ch = tolower(ch);
-
-                    if (mode == '=' && prb == val) matches = true;
-                    else if (mode == '@' && prb.find(val) != string::npos) matches = true;
-
-                    break;
-                }
-
-
-            case 'r':
-                {
-                    float prr = pr.r;
-
-                    if (mode == '=' && prr == stof(val)) matches = true;
-                    else if (mode == '>')
+                case 'd':
                     {
-                        auto it = val.find('<'); // check if it's an interval
-                        if (it != string::npos)
-                        {
-                            float lower = stof(val.substr(0, it));
-                            float upper = stof(val.substr(it + 1));
-                            if (pr.r > lower && pr.r < upper)
-                            {
-                                matches = true;
-                            }
-                        }
-                        else // just p > something
-                        {
-                            float threshold = stof(val);
-                            if (pr.r > threshold)
-                            {
-                                matches = true;
-                            }
-                        }
+                        if (mode == '!' && pr.d != 0)
+                            anyMatchThisType = true;
                         break;
                     }
-                    else if (mode == '<')
-                    {
-                        auto it = val.find('>'); // check if it's an interval
-                        if (it != string::npos)
-                        {
-                            float upper = stof(val.substr(0, it));
-                            float lower = stof(val.substr(it + 1));
-                            if (pr.r > lower && pr.r < upper)
-                            {
-                                matches = true;
-                            }
-                        }
-                        else // just p > something
-                        {
-                            float threshold = stof(val);
-                            if (pr.r < threshold)
-                            {
-                                matches = true;
-                            }
-                        }
-                        break;
-                    }
+
+
+                default: break;
                 }
 
 
-            case 'd':
-                {
-                    unsigned int prd = pr.d;
-
-                    if (mode == '!' && prd != 0) matches = true;
-
-                    break;
-                }
-
-            default: break;
+                if (anyMatchThisType)
+                    break; // no need to test more filters of same type
             }
 
-            if (matches && !seen.count(prn))
+            if (!anyMatchThisType)
             {
-                seen.insert(prn);
-                orderedUniques.push_back(prn);
+                allTypesMatch = false;
+                break;
             }
         }
-    }
 
+        if (allTypesMatch && !seen.count(pr.n))
+        {
+            seen.insert(pr.n);
+            orderedUniques.push_back(pr.n);
+        }
+    }
 
     for (const auto& name : orderedUniques)
         cout << name << ";";
     cout << endl;
 }
+
 
 // FINAL cod de trimis pe platforma
 
